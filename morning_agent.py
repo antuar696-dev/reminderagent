@@ -3,7 +3,6 @@ import requests
 from datetime import datetime
 from mistralai import Mistral
 
-# Environment variables
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -13,148 +12,69 @@ ACCUWEATHER_API_KEY = os.getenv("ACCUWEATHER_API_KEY")
 MODEL = "mistral-small-latest"
 
 
-def send_telegram(message):
+def telegram_send(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-
     requests.post(
         url,
-        json={
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": message
-        },
+        json={"chat_id": TELEGRAM_CHAT_ID, "text": text},
         timeout=20
     )
 
 
-def get_weather():
-    try:
-        # Default location can be changed later
-        location_key = "Dhaka"
-
-        url = (
-            "https://dataservice.accuweather.com"
-            "/forecasts/v1/daily/1day/"
-            f"{location_key}"
-        )
-
-        params = {
-            "apikey": ACCUWEATHER_API_KEY,
-            "metric": "true"
-        }
-
-        response = requests.get(
-            url,
-            params=params,
-            timeout=20
-        )
-
-        if response.status_code != 200:
-            return "Weather service unavailable."
-
-        data = response.json()
-
-        return str(data)[:500]
-
-    except Exception:
-        return "Weather unavailable."
-
-
 def get_news():
     try:
-        url = "https://api.thenewsapi.com/v1/news/top"
-
-        params = {
-            "api_token": NEWS_API_KEY,
-            "search": "AI automation technology education jobs",
-            "language": "en",
-            "limit": 5
-        }
-
-        response = requests.get(
-            url,
-            params=params,
+        r = requests.get(
+            "https://api.thenewsapi.com/v1/news/top",
+            params={
+                "api_token": NEWS_API_KEY,
+                "search": "AI automation technology education jobs",
+                "language": "en",
+                "limit": 5
+            },
             timeout=20
         )
-
-        if response.status_code != 200:
-            return "News unavailable."
-
-        articles = response.json().get("data", [])
-
-        result = []
-
-        for item in articles:
-            result.append(
-                f"- {item.get('title')}"
-            )
-
-        return "\n".join(result)
-
+        data = r.json().get("data", [])
+        return "\n".join(
+            [f"- {x.get('title')}" for x in data]
+        ) or "No news found."
     except Exception:
         return "News unavailable."
 
 
-def create_ai_plan(weather, news):
+def get_weather():
+    # Accuweather location key should be added later
+    return "Weather information unavailable. Configure location key."
+
+
+def create_plan(news, weather):
     client = Mistral(api_key=MISTRAL_API_KEY)
 
-    prompt = f"""
-You are a personal AI assistant.
-
-Create a morning plan.
-
-Include:
-
-1. Good morning message
-2. Weather summary
-3. Important news
-4. Today's priority tasks
-
-Rules:
-
-- Give list format
-- Do not give exact clock schedule
-- Mention estimated duration only
-- Be practical
-
-Weather:
-{weather}
-
-News:
-{news}
-"""
-
-    response = client.chat.complete(
+    result = client.chat.complete(
         model=MODEL,
         messages=[
             {
+                "role": "system",
+                "content": "Create a practical morning plan. Use list format. Do not give exact schedule. Give estimated duration."
+            },
+            {
                 "role": "user",
-                "content": prompt
+                "content": f"Weather:\n{weather}\n\nNews:\n{news}"
             }
         ]
     )
 
-    return response.choices[0].message.content
+    return result.choices[0].message.content
 
 
 def main():
-    weather = get_weather()
     news = get_news()
+    weather = get_weather()
 
-    plan = create_ai_plan(
-        weather,
-        news
+    plan = create_plan(news, weather)
+
+    telegram_send(
+        f"Good Morning ☀️\n\nDate: {datetime.now().strftime('%d-%m-%Y')}\n\n{plan}"
     )
-
-    message = f"""
-Good Morning ☀️
-
-Date:
-{datetime.now().strftime('%d-%m-%Y')}
-
-{plan}
-"""
-
-    send_telegram(message)
 
 
 if __name__ == "__main__":
