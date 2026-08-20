@@ -23,7 +23,13 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
+          pip uninstall -y mistralai || true
           pip install -r requirements.txt
+
+      - name: Check Mistral version
+        run: |
+          pip show mistralai
 
       - name: Run Morning AI Agent
         env:
@@ -32,5 +38,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
           ACCUWEATHER_API_KEY: ${{ secrets.ACCUWEATHER_API_KEY }}
+
         run: |
           python morning_agent.py
