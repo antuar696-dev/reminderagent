@@ -2,14 +2,11 @@ name: Morning AI Assistant
 
 on:
   schedule:
-    # 00:00 UTC = 06:00 Bangladesh time (UTC+6)
     - cron: "0 0 * * *"
-
   workflow_dispatch:
 
 jobs:
   morning-plan:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -27,17 +24,16 @@ jobs:
           pip uninstall -y mistralai || true
           pip install -r requirements.txt
 
-      - name: Check Mistral version
+      - name: Check packages
         run: |
           pip show mistralai
 
-      - name: Run Morning AI Agent
+      - name: Run Morning Agent
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
           ACCUWEATHER_API_KEY: ${{ secrets.ACCUWEATHER_API_KEY }}
-
         run: |
           python morning_agent.py
