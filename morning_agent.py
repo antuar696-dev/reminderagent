@@ -1,7 +1,7 @@
 import os
 import requests
 from datetime import datetime
-from mistralai import Mistral
+from mistralai.client import MistralClient
 
 # Environment variables
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
@@ -95,7 +95,7 @@ def get_news():
 
 
 def create_ai_plan(weather, news):
-    client = Mistral(api_key=MISTRAL_API_KEY)
+    client = MistralClient(api_key=MISTRAL_API_KEY)
 
     prompt = f"""
 You are a personal AI assistant.
